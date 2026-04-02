@@ -1,9 +1,9 @@
 /* ============================================
-   PULSE — Service Worker
-   Cache-first strategy for offline support
+   PULSE — Service Worker v2
+   Cache-first for local, network-first for Firebase
    ============================================ */
 
-const CACHE_NAME = 'pulse-v1';
+const CACHE_NAME = 'pulse-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -14,17 +14,21 @@ const ASSETS = [
   '/manifest.json'
 ];
 
-const CDN_ASSETS = [
-  'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
-  'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap'
+// Domains that should always go to network (Firebase, auth, etc.)
+const NETWORK_ONLY_DOMAINS = [
+  'firestore.googleapis.com',
+  'identitytoolkit.googleapis.com',
+  'securetoken.googleapis.com',
+  'accounts.google.com',
+  'apis.google.com',
+  'www.googleapis.com',
+  'firebasestorage.googleapis.com'
 ];
 
-// Install: cache core assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(ASSETS).catch(() => {
-        // If running from file:// protocol, skip caching
         console.log('Caching skipped (likely file:// protocol)');
       });
     })
@@ -32,7 +36,6 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => {
@@ -44,25 +47,25 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: cache-first for local assets, network-first for CDN
 self.addEventListener('fetch', event => {
   const { request } = event;
 
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
-
-  // Skip chrome-extension and other non-http requests
   if (!request.url.startsWith('http')) return;
+
+  // Network-only for Firebase and auth domains
+  const url = new URL(request.url);
+  if (NETWORK_ONLY_DOMAINS.some(d => url.hostname.includes(d))) {
+    return; // Let the browser handle it normally
+  }
 
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
 
       return fetch(request).then(response => {
-        // Don't cache non-ok responses
         if (!response || response.status !== 200) return response;
 
-        // Clone and cache
         const clone = response.clone();
         caches.open(CACHE_NAME).then(cache => {
           cache.put(request, clone);
@@ -70,7 +73,6 @@ self.addEventListener('fetch', event => {
 
         return response;
       }).catch(() => {
-        // Offline fallback for navigation
         if (request.mode === 'navigate') {
           return caches.match('/index.html');
         }
