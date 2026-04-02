@@ -416,6 +416,14 @@
 
   let parsedImportRows = [];
 
+  // Click to open file picker (fallback for browsers where label-for is unreliable)
+  fileUploadArea.addEventListener('click', (e) => {
+    // Only trigger if not clicking the input itself (avoids double-open)
+    if (e.target !== csvFileInput) {
+      csvFileInput.click();
+    }
+  });
+
   // Drag & drop
   fileUploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
