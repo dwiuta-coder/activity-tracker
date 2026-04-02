@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Track your daily activities, moods, and productivity patterns">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <title>Pulse — Activity Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="header-left">
+      <span class="logo-icon">⚡</span>
+      <h1 class="app-title">Pulse</h1>
+    </div>
+    <div class="header-right">
+      <span class="today-date" id="headerDate"></span>
+    </div>
+  </header>
+
+  <!-- ===== PAGE: LOG ENTRY ===== -->
+  <main class="page active" id="page-log">
+    <div class="page-content">
+      <div class="page-heading">
+        <h2>New Entry</h2>
+        <p class="subtitle">What did you work on?</p>
+      </div>
+
+      <form id="logForm" class="entry-form" autocomplete="off">
+        <div class="form-group">
+          <label for="entryTitle">Title</label>
+          <input type="text" id="entryTitle" placeholder="e.g. Deep focus coding session" required>
+        </div>
+
+        <div class="form-group">
+          <label>Category</label>
+          <div class="category-pills">
+            <button type="button" class="pill active" data-category="Work">
+              <span class="pill-dot work"></span>Work
+            </button>
+            <button type="button" class="pill" data-category="Study">
+              <span class="pill-dot study"></span>Study
+            </button>
+            <button type="button" class="pill" data-category="Personal">
+              <span class="pill-dot personal"></span>Personal
+            </button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="startTime">Start</label>
+            <input type="time" id="startTime" required>
+          </div>
+          <div class="form-group half">
+            <label for="endTime">End</label>
+            <input type="time" id="endTime" required>
+          </div>
+        </div>
+
+        <div class="duration-display" id="durationDisplay">
+          <span class="duration-label">Duration</span>
+          <span class="duration-value" id="durationValue">—</span>
+        </div>
+
+        <div class="form-group">
+          <label>Energy Level</label>
+          <div class="mood-selector">
+            <button type="button" class="mood-btn" data-mood="1" title="Exhausted">
+              <span class="mood-emoji">😴</span>
+              <span class="mood-text">1</span>
+            </button>
+            <button type="button" class="mood-btn" data-mood="2" title="Tired">
+              <span class="mood-emoji">😐</span>
+              <span class="mood-text">2</span>
+            </button>
+            <button type="button" class="mood-btn active" data-mood="3" title="Normal">
+              <span class="mood-emoji">🙂</span>
+              <span class="mood-text">3</span>
+            </button>
+            <button type="button" class="mood-btn" data-mood="4" title="Good">
+              <span class="mood-emoji">😊</span>
+              <span class="mood-text">4</span>
+            </button>
+            <button type="button" class="mood-btn" data-mood="5" title="Energized">
+              <span class="mood-emoji">🔥</span>
+              <span class="mood-text">5</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="entryNotes">Notes <span class="optional">(optional)</span></label>
+          <textarea id="entryNotes" rows="3" placeholder="Any details or reflections..."></textarea>
+        </div>
+
+        <input type="hidden" id="editId" value="">
+
+        <button type="submit" class="btn-primary" id="submitBtn">
+          <span class="btn-icon">+</span> Save Entry
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- ===== PAGE: HISTORY ===== -->
+  <main class="page" id="page-history">
+    <div class="page-content">
+      <div class="page-heading">
+        <h2>Logbook</h2>
+        <p class="subtitle">Your activity history</p>
+      </div>
+
+      <div class="filter-bar">
+        <input type="date" id="filterDate" class="filter-input">
+        <select id="filterCategory" class="filter-select">
+          <option value="All">All</option>
+          <option value="Work">Work</option>
+          <option value="Study">Study</option>
+          <option value="Personal">Personal</option>
+        </select>
+      </div>
+
+      <div class="entries-list" id="entriesList">
+        <!-- entries populated by JS -->
+      </div>
+
+      <div class="empty-state" id="emptyHistory" style="display:none;">
+        <span class="empty-icon">📭</span>
+        <p>No entries yet. Start logging!</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== PAGE: DASHBOARD ===== -->
+  <main class="page" id="page-dashboard">
+    <div class="page-content">
+      <div class="page-heading">
+        <h2>Dashboard</h2>
+        <p class="subtitle">Your weekly overview</p>
+      </div>
+
+      <!-- Daily Summary -->
+      <div class="dash-card today-card">
+        <div class="card-header">
+          <h3>Today</h3>
+          <span class="card-badge" id="todayDate"></span>
+        </div>
+        <div class="today-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="todayHours">0h</span>
+            <span class="stat-label">Total Time</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="todayTasks">0</span>
+            <span class="stat-label">Tasks</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="todayMood">—</span>
+            <span class="stat-label">Avg Energy</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly Bar Chart -->
+      <div class="dash-card">
+        <div class="card-header">
+          <h3>Weekly Patterns</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="weeklyChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Category Donut -->
+      <div class="dash-card">
+        <div class="card-header">
+          <h3>Time by Category</h3>
+        </div>
+        <div class="chart-container donut-container">
+          <canvas id="categoryChart"></canvas>
+          <div class="donut-center" id="donutCenter">
+            <span class="donut-total" id="donutTotal">0h</span>
+            <span class="donut-label">this week</span>
+          </div>
+        </div>
+        <div class="category-legend" id="categoryLegend"></div>
+      </div>
+
+      <!-- Task Completion -->
+      <div class="dash-card">
+        <div class="card-header">
+          <h3>Task Completion</h3>
+        </div>
+        <div class="completion-ring-wrap">
+          <canvas id="completionChart"></canvas>
+          <div class="completion-center">
+            <span class="completion-pct" id="completionPct">0%</span>
+            <span class="completion-label">tasks logged</span>
+          </div>
+        </div>
+        <div class="completion-meta" id="completionMeta"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== PAGE: AI INSIGHT ===== -->
+  <main class="page" id="page-ai">
+    <div class="page-content">
+      <div class="page-heading">
+        <h2>AI Insight</h2>
+        <p class="subtitle">Generate a summary for analysis</p>
+      </div>
+
+      <div class="ai-intro-card">
+        <span class="ai-icon">🤖</span>
+        <p>Generate a structured summary of your last 7 days, then copy it to paste into <strong>Claude.ai</strong> for personalized productivity analysis.</p>
+      </div>
+
+      <button class="btn-primary btn-generate" id="btnGenerate">
+        <span class="btn-icon">✨</span> Generate My Summary
+      </button>
+
+      <div class="ai-output-wrap" id="aiOutputWrap" style="display:none;">
+        <pre class="ai-output" id="aiOutput"></pre>
+        <button class="btn-secondary btn-copy" id="btnCopy">
+          <span class="btn-icon">📋</span> Copy for Claude
+        </button>
+        <div class="copy-toast" id="copyToast">Copied to clipboard!</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== PAGE: EXPORT ===== -->
+  <main class="page" id="page-export">
+    <div class="page-content">
+      <div class="page-heading">
+        <h2>Export & Import</h2>
+        <p class="subtitle">Move your data in and out</p>
+      </div>
+
+      <!-- IMPORT SECTION -->
+      <div class="export-card import-card">
+        <div class="export-option">
+          <h3>📤 Import CSV</h3>
+          <p>Import entries from a CSV file. The file should match the exported format (Date, Title, Category, Start Time, End Time, Duration, Mood, Notes).</p>
+
+          <label class="file-upload-area" id="fileUploadArea">
+            <input type="file" id="csvFileInput" accept=".csv" hidden>
+            <span class="upload-icon">📄</span>
+            <span class="upload-text" id="uploadText">Tap to select a CSV file</span>
+            <span class="upload-hint">or drag & drop</span>
+          </label>
+
+          <div class="import-preview" id="importPreview" style="display:none;">
+            <div class="preview-header">
+              <h4>Preview</h4>
+              <button class="entry-action-btn" id="btnClearImport">Clear</button>
+            </div>
+            <div class="preview-stats" id="previewStats"></div>
+            <div class="preview-list" id="previewList"></div>
+            <div class="import-actions">
+              <button class="btn-primary" id="btnConfirmImport">
+                <span class="btn-icon">✓</span> Import <span id="importCount">0</span> Entries
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="export-divider"><span>export</span></div>
+
+      <!-- EXPORT SECTION -->
+      <div class="export-card">
+        <div class="export-option">
+          <h3>Export All Data</h3>
+          <p>Download every entry you've logged.</p>
+          <button class="btn-primary" id="btnExportAll">
+            <span class="btn-icon">📥</span> Export All
+          </button>
+        </div>
+
+        <div class="export-divider"><span>or</span></div>
+
+        <div class="export-option">
+          <h3>Custom Date Range</h3>
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="exportFrom">From</label>
+              <input type="date" id="exportFrom" class="filter-input">
+            </div>
+            <div class="form-group half">
+              <label for="exportTo">To</label>
+              <input type="date" id="exportTo" class="filter-input">
+            </div>
+          </div>
+          <button class="btn-primary" id="btnExportRange">
+            <span class="btn-icon">📥</span> Export Range
+          </button>
+        </div>
+      </div>
+
+      <div class="export-info">
+        <p>CSV files can be opened in Excel, Google Sheets, or any spreadsheet app.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-page="log">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Log</span>
+    </button>
+    <button class="nav-btn" data-page="history">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>History</span>
+    </button>
+    <button class="nav-btn" data-page="dashboard">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="8" rx="1"/><rect x="10" y="8" width="4" height="12" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>
+      <span>Stats</span>
+    </button>
+    <button class="nav-btn" data-page="ai">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1h-2v-1a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v1H4v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 12 2z"/><circle cx="8" cy="19" r="2"/><circle cx="16" cy="19" r="2"/></svg>
+      <span>AI</span>
+    </button>
+    <button class="nav-btn" data-page="export">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Export</span>
+    </button>
+  </nav>
+
+  <!-- ===== TOAST ===== -->
+  <div class="toast" id="globalToast"></div>
+
+  <!-- ===== CONFIRM MODAL ===== -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+      <p id="confirmMsg">Are you sure?</p>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="confirmCancel">Cancel</button>
+        <button class="btn-danger" id="confirmOk">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="ai-summary.js"></script>
+</body>
+</html>
